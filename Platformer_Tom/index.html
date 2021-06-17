@@ -3,8 +3,10 @@
 <head> 
     <meta charset="UTF-8" />
     <title> Black Ice </title>
-    <script src="//cdn.jsdelivr.net/npm/phaser@3.51.0/dist/phaser.js"></script>
+    <script src="phaser.js"></script>
+    <script type="text/javascript" src="JS/menu.js"></script>
     <script type="text/javascript" src="JS/Platform.js"></script>
+    <script type="text/javascript" src="JS/boss.js"></script>
     <style>
         html,
         body,
@@ -41,7 +43,7 @@ var config = {
         arcade: {
             gravity: { y: 1700 },
             debug: false}},
-    scene: [Platform],
+    scene: [Menu,Platform,Boss],
     input:{gamepad:true},
 };
    // VARIABLES -------------------------------------------------- 
@@ -53,7 +55,13 @@ var invulnerabilite = false;
 var vie = 3;
 var gameOver = false;
 var victoire = false;
+var combat = true;
 var game = new Phaser.Game(config);
+
+
+
+
+
 
     
 function preload ()
@@ -65,7 +73,7 @@ function create ()
     cursors = this.input.keyboard.createCursorKeys();
     player.setCollideWorldBounds(true);
     
-    this.scene.start("Platform")
+    this.scene.start("menu")
     
 }
 

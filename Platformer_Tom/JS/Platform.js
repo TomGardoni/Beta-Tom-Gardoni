@@ -1,3 +1,7 @@
+var etatCam = false;
+var compteurCam = 250;
+var passe = false;
+var untrucVivant = true;
 class Platform extends Phaser.Scene{
     constructor(){
         super("Platform");
@@ -14,16 +18,26 @@ class Platform extends Phaser.Scene{
         //Background
         this.load.image('BG', 'assets/sky.png');
         this.load.image('para', 'assets/para.png');
+        this.load.image('cache', 'assets/cache.png');
+
         //Vie
         this.load.image('barre_de_vie_3hp', 'assets/hp3.png');
         this.load.image('barre_de_vie_2hp', 'assets/hp2.png');
         this.load.image('barre_de_vie_1hp', 'assets/hp1.png');
         this.load.image('barre_de_vie_0hp', 'assets/hp0.png');
+        this.load.image('game_over', 'assets/End.png');
 
-        this.load.image('game_over', 'assets/game_overV2.png');
+        //PopUp
+        this.load.image('popupcage', 'assets/popupcage.png');
+        this.load.image('popupgants', 'assets/popupgants.png');
+        this.load.image('popupsaut', 'assets/popupsaut.png');
+        this.load.image('popupfincage', 'assets/popupfincage.png');
+        this.load.image('popupcageferme', 'assets/popupcageferme.png');
+        this.load.image('popupporte', 'assets/popupporte.png');
 
         //Personnage
         this.load.spritesheet('dude', 'assets/spritesheet_perso2.png', { frameWidth: 96, frameHeight: 119});
+        this.load.image('fleche', 'assets/fleche.png');
 
         this.load.image('Ghost1', 'assets/fantome1.png');
         this.load.image('Ghost2', 'assets/fantome2.png');
@@ -34,12 +48,15 @@ class Platform extends Phaser.Scene{
         this.load.image('Gants', 'assets/gb.png');
         this.load.image('Ressort', 'assets/djump.png');
         this.load.image('key', 'assets/cle.png');
+        this.load.image('porte', 'assets/porte.png');
 
 
     } // FIN PRELOAD
     
 
     create(){
+        this.nbcle = 0;
+        this.droite = false;
         this.recuper = 0;
         this.djump = false;
         this.box = false;
@@ -49,8 +66,27 @@ class Platform extends Phaser.Scene{
         this.immune = true;
         this.life = 3;
         this.HITTING = false;
+        this.isDead = false;
+        this.dash = true;            // Si le joueur possède le dash.
+        this.timerDashOn = false;    // Lance le timer du dash.
+        this.timerDash = 0;          // Timer du dash.
+        this.directionDash = false;  // Donne la direction vers laquelle le dash doit être fait.
+        this.lessgo = true;
+        this.unlocked = false;
+        this.etatCam = false;
+        this.compteurCam = 250;
+        this.passe = false;
+        this.once = true;
+        this.px = false;
+        this.ps = false;
+        this.pp = false;
+        this.pf = false;
+        this.pc = false;
+        this.pg = false;
+        
 
         this.add.image(0, 0, 'BG').setOrigin(0).setDepth(-2);
+        this.add.image(0, 2120, 'cache').setOrigin(0).setDepth(3);
 
         // CREATION DE LA MAP   
         let Map = this.make.tilemap({ key: 'Map' });
@@ -64,6 +100,7 @@ class Platform extends Phaser.Scene{
         // CREATION VARIABLE TOUCHES 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.cursorSp = this.input.keyboard.addKey('SPACE');
+        this.cursorDash = this.input.keyboard.addKey('A');
         this.hp = this.add.image(1700,100,'barre_de_vie_3hp').setScrollFactor(0);
 
 
@@ -71,6 +108,10 @@ class Platform extends Phaser.Scene{
         const spawnPoint = Map.findObject("Objects", obj => obj.name === "Spawn Point");
 		this.player = this.physics.add.sprite(spawnPoint.x, spawnPoint.y, 'dude').setDepth(0);
         this.player.setCollideWorldBounds(true);
+
+        this.flecheBack = this.add.image(1840, 250, 'fleche').setScrollFactor(0).setDepth(3);
+        this.flecheBack.setTintFill(0x000000);
+        this.fleche = this.add.image(this.flecheBack.x, this.flecheBack.y, 'fleche').setScrollFactor(0).setDepth(3);
 
         //CREATION ITEMS
         this.key = this.physics.add.staticGroup();
@@ -112,7 +153,7 @@ class Platform extends Phaser.Scene{
 
         this.cage = this.physics.add.staticGroup();
         this.untruc = this.cage.create(CageSp.x, CageSp.y, 'Cage').setDepth(1);
-        this.physics.add.collider(this.player,this.cage)
+        
 
         const BoxeSp = Map.findObject("Objects", obj => obj.name === "Gants de boxe");
 
@@ -208,6 +249,8 @@ class Platform extends Phaser.Scene{
         this.physics.add.collider(this.ghost4, this.sol);
         this.sol.setCollisionByProperty({collides:true});
 
+        this.physics.add.collider(this.player,this.untruc, this.bonjour,null,this);
+
         
         
         // AJOUT DES COLLIDERS 
@@ -222,17 +265,30 @@ class Platform extends Phaser.Scene{
             });
         
         // CREATION ANIMATION JOUEUR
-        
+       
+        this.anims.create({
+            key: 'dash',
+            frames: [{key : 'dude', frame : 25}],
+            frameRate : 10
+        });
+
         this.anims.create({
             key: 'run',
             frames: this.anims.generateFrameNumbers('dude', { start: 0, end: 7 }),
             frameRate: 10,
         });
 
+       
         this.anims.create({
             key: 'face',
             frames: this.anims.generateFrameNumbers('dude', {start: 15, end: 20}),
             frameRate: 9,
+        })
+       
+        this.anims.create({
+            key: 'die',
+            frames: this.anims.generateFrameNumbers('dude', {start: 21, end: 25}),
+            frameRate: 5,
         })
 
         this.anims.create({
@@ -262,6 +318,10 @@ class Platform extends Phaser.Scene{
           });
         */
         // AJOUT CAMERA 
+
+        this.door = this.physics.add.group({allowGravity: false,immovable: true});
+
+        this.door.create(5259, 750, 'porte').setDepth(0).setVisible(false);
         
         this.cameras.main.startFollow(this.player)
 		this.cameras.main.setBounds(0,0,Map.widthInPixels, Map.heightInPixels);
@@ -276,8 +336,9 @@ class Platform extends Phaser.Scene{
         const onGround = this.player.body.blocked.down;
         const speed = 400;
         
-        // CONTROLES CLAVIER ET MANETTE
+        console.log(this.directionDash)
 
+        // CONTROLES CLAVIER ET MANETTE
         if (this.player.body.velocity.y > 950){
             this.player.setVelocityY(950);
         }
@@ -298,10 +359,63 @@ class Platform extends Phaser.Scene{
             this.player.setVelocityX(0);
         }
       
-          // Allow player to jump only if on ground
-          if (onGround && this.cursors.up.isDown && !this.djump){
+       // Dash --------------------
+
+        if (this.cursors.left.isDown) {     
+            this.directionDash = true
+        }
+
+        if (this.cursors.right.isDown) {     
+            this.directionDash = false
+        }
+
+        if(this.timerFleche > 0 && this.dash == false){
+            this.timerFleche--;
+            console.log(this.cropValue);
+            if(this.cropValue > this.flecheBack.height || this.cropValue < this.flecheBack.height){this.cropValue = this.flecheBack.height;}
+            else{this.cropValue = this.timerFleche;}
+            // crée un sorte de jauge pour montrer au joueur si iel peux utiliser le dash ou non
+            if(this.timerFleche%2 != 0){this.fleche.setCrop(0, this.cropValue, this.flecheBack.width, this.flecheBack.height);}
+        } else if(this.timerFleche <= 0 && this.timerFleche > -1){
+            this.timerFleche = this.timerFleche -0.1;
+            this.fleche.setTintFill(0xffffff);
+        } else{
+            this.fleche.clearTint();
+            this.fleche.setCrop(0, 0, this.flecheBack.width, this.flecheBack.height);
+        }
+
+        if (this.dash && Phaser.Input.Keyboard.JustDown(this.cursorDash)){
+            this.timerDashOn = true;
+            this.dash = false;
+            this.timerFleche = this.flecheBack.height-1;
+            this.dashTime = this.time.addEvent({ delay: 2500, callback: function(){this.dash = true}, callbackScope: this});
+            console.log ('DASH!!!!!!' + this.directionDash);
+        }
+
+
+
+        if (this.timerDashOn){
+
+            this.timerDash += 1
+
+            if (this.directionDash){
+                this.player.setVelocityX(-1000);
+            }
+            else{
+                this.player.setVelocityX(1000);
+            }
+            
+
+            if (this.timerDash >= 20){
+                this.timerDashOn = false
+                this.timerDash = 0
+            }
+        }
+
+        // Allow player to jump only if on ground
+        if (onGround && this.cursors.up.isDown && !this.djump){
             this.player.setVelocityY(-1200);
-          }
+        }
           
         if ((this.player.body.touching.down || this.jumpCount < 2) && (this.cursors.up.isDown) && this.test && this.djump) {
             this.player.setVelocityY(-1200);
@@ -316,24 +430,31 @@ class Platform extends Phaser.Scene{
             this.test = true ; 
         }
 
-        if (this.cursorSp.isDown && this.box && this.testB){
-            this.testB = false;
-            this.boxe = this.time.addEvent({ delay : 200, repeat: 9, callback: function(){this.HITTING = true;}, callbackScope: this});
+        if (this.cursorSp.isDown && this.box){
+            this.HITTING = true;
         }
 
         if (this.cursorSp.isUp){
-            this.testB = true ; 
+            this.HITTING = false ;
+        }
+
+        if ( this.physics.world.overlap(this.player, this.door) && this.unlocked){
+            combat = true;
+            
+            this.scene.start('boss')
         }
           
 
-          // Update the animation
+           // Update the animation
         if (onGround) {
             
             this.jumpCount = 1
             
             //Player Running if velocityX != 0 else Player Idle
+        
         if (this.cursorSp.isDown && this.box)this.player.anims.play("fight", true);
         else if (this.player.body.velocity.x !== 0) this.player.anims.play("run", true);
+        else if (this.isDead){this.player.anims.play("die", true);}
         else this.player.anims.play("face", true);
         } else {
             //Stopping Animation to play a Texture for the jump
@@ -343,25 +464,33 @@ class Platform extends Phaser.Scene{
       
         // UPDATE DE LA VIE AVEC CHANGEMENT VISIBLE DE CETTE DERNIERE
    
-    if (this.life == 3){
-       this.hp.setTexture("barre_de_vie_3hp");
+        if (this.life == 3){
+        this.hp.setTexture("barre_de_vie_3hp");
+            
+        }
+        else if (this.life == 2){
+            this.hp.setTexture("barre_de_vie_2hp" );
+            
+        }
         
-    }
-    else if (this.life == 2){
-        this.hp.setTexture("barre_de_vie_2hp" );
+        else if (this.life == 1){
+            this.hp.setTexture("barre_de_vie_1hp");
         
-    }
-    
-    else if (this.life == 1){
-        this.hp.setTexture("barre_de_vie_1hp");
-    
-    }
-    
-    else if (this.life == 0){
-        this.hp.setTexture("barre_de_vie_0hp");
-        this.add.image(640, 360, 'game_over').setScrollFactor(0);
-    }
-    }
+        }
+        
+        else if (this.life == 0){
+            this.hp.setTexture("barre_de_vie_0hp");
+            
+        }
+
+        if (this.recuper == 1){
+            if(!this.pc){
+                this.pc = this.add.image(950,200,'popupcage').setScrollFactor(0);
+                this.time.addEvent({ delay: 3000, callback: function(){this.pc.destroy();}, callbackScope: this});
+            }
+        }
+ 
+}
         
      // FIN UPDATE
     
@@ -369,19 +498,32 @@ class Platform extends Phaser.Scene{
     deblocageSaut(player,saut){
         saut.destroy();
         this.djump = true;
+        if(!this.ps){
+            this.ps = this.add.image(950,200,'popupsaut').setScrollFactor(0);
+            this.time.addEvent({ delay: 3000, callback: function(){this.ps.destroy();}, callbackScope: this});
+        }
     }
 
     Boxing(player,boxe){
         boxe.destroy();
         this.box = true;
+        if(!this.pg){
+            this.pg = this.add.image(950,200,'popupgants').setScrollFactor(0);
+            this.time.addEvent({ delay: 3000, callback: function(){this.pg.destroy();}, callbackScope: this});
+        }
     }
 
     recoltBois(player,boisson){
         boisson.destroy();
         this.recuper += 1;
         if (this.recuper == 5){
+            if(!this.pf){
+                this.pf = this.add.image(950,200,'popupfincage').setScrollFactor(0);
+                this.time.addEvent({ delay: 3000, callback: function(){this.pf.destroy();}, callbackScope: this});
+            }
             this.untruc.destroy();
             this.recuper = 0;
+
         }
     }
     hit(player,ennemy){
@@ -390,23 +532,43 @@ class Platform extends Phaser.Scene{
             var key = this.key.create(ennemy.x,ennemy.y,'key')
         }
         else{
-            if (this.immune){
-                this.life -= 1;
-                this.immune = false;
-                
-                if(this.life > 0){
-                    this.effect = this.time.addEvent({ delay : 200, repeat: 9, callback: function(){player.visible = !player.visible;}, callbackScope: this});
+
+            if (!this.timerDashOn){
+                if (this.immune){
+                    this.life -= 1;
+                    this.immune = false;
+                    
+                    if(this.life > 0){
+                        this.effect = this.time.addEvent({ delay : 200, repeat: 9, callback: function(){player.visible = !player.visible;}, callbackScope: this});
+                    }
+    
+                    this.ImmuneFrame = this.time.addEvent({ delay : 2000, callback: function(){this.immune = true}, callbackScope: this});
+    
                 }
-
-                this.ImmuneFrame = this.time.addEvent({ delay : 2000, callback: function(){this.immune = true}, callbackScope: this});
-
             }
             
             
+            
             if(this.life == 0){
-                this.player.setTint(0xff0000);
+                this.isDead = true
+                this.player.anims.play("die", true);
                 this.physics.pause();
-                this.gameOver = true;
+                const cam = this.cameras.main;
+                cam.fadeOut(1000);
+        
+
+                cam.once("camerafadeoutcomplete", ()=> {
+                    cam.fadeIn(3000)
+                    this.add.image(960, 540, 'game_over').setScrollFactor(0).setDepth(5);
+                    this.gameOver = true;
+                    this.time.addEvent({delay: 3500, callback: function(){const cam = this.cameras.main;
+
+                        cam.fade(250, 0, 0, 0);
+            
+                        cam.once("camerafadeoutcomplete", () => {
+                            this.scene.restart();
+                        });}, callbackScope: this});
+            })
             }
         }
 
@@ -417,13 +579,50 @@ class Platform extends Phaser.Scene{
         key.destroy();
         this.nbcle++
         if(this.nbcle == 4){
-            //Porte peut spawn
+            if(!this.pp){
+                this.pp = this.add.image(950,200,'popupporte').setScrollFactor(0);
+                this.time.addEvent({ delay: 3000, callback: function(){this.pp.destroy();}, callbackScope: this});
+            }
+            this.unlocked = true;
+        }
+    }
+
+    bonjour(){
+        if (this.once){
+            if(!this.px){
+                this.pix = this.add.image(950,200,'popupcageferme').setScrollFactor(0);
+                this.time.addEvent({ delay: 2000, callback: function(){this.pix.destroy();}, callbackScope: this});
+            }
+            this.once = false
+        }
+        else{
+            this.time.addEvent({ delay: 2000, callback: function(){this.once = true}, callbackScope: this});
+            this.time.addEvent({ delay: 2000, callback: function(){this.pix.destroy();}, callbackScope: this});
         }
     }
     
     death(){
-        this.player.setTint(0xff0000);
+        this.isDead = true
+        this.player.anims.play("die", true);
         this.physics.pause();
-        this.gameOver = true;
+        const cam = this.cameras.main;
+        cam.fadeOut(1000);
+        
+
+        cam.once("camerafadeoutcomplete", ()=> {
+
+            cam.fadeIn(3000)
+            this.add.image(960, 540, 'game_over').setScrollFactor(0).setDepth(5);
+            this.gameOver = true;
+            this.time.addEvent({delay: 3500, callback: function(){const cam = this.cameras.main;
+
+                cam.fade(250, 0, 0, 0);
+    
+                cam.once("camerafadeoutcomplete", () => {
+                    this.scene.restart();
+                });}, callbackScope: this});
+        })
+        
+        
     }
 }
