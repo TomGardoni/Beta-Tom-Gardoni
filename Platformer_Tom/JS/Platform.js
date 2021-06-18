@@ -6,12 +6,18 @@ class Platform extends Phaser.Scene{
     constructor(){
         super("Platform");
     }
+    init(data){
+
+        this.blabla = data.Bonjour
+
+
+    }
 
         // FONCTION DE CHARGEMENT D'ASSETS --------------------------------------------------
 
     preload(){
         //Map
-        this.load.image('Tiles', 'Tuiles.png');
+        this.load.image('Tiles', 'assets/Tuiles.png');
         this.load.tilemapTiledJSON('Map', 'Map.json');
         
 
@@ -49,7 +55,14 @@ class Platform extends Phaser.Scene{
         this.load.image('Ressort', 'assets/djump.png');
         this.load.image('key', 'assets/cle.png');
         this.load.image('porte', 'assets/porte.png');
-
+        
+        //Son
+        this.load.audio('musique', 'sounds/musique.ogg');
+        this.load.audio('dash', 'sounds/dash.ogg');
+        this.load.audio('coup', 'sounds/coup.ogg');
+        this.load.audio('saut', 'sounds/saut.ogg');
+        this.load.audio('musiqueboss', 'sounds/musiqueboss.ogg');
+        this.load.audio('pop', 'sounds/pop.ogg');
 
     } // FIN PRELOAD
     
@@ -84,11 +97,22 @@ class Platform extends Phaser.Scene{
         this.pc = false;
         this.pg = false;
         
+        
+        this.sound.add('pop');
+        this.sound.add('dash');
+        this.sound.add('coup');
+        this.sound.add('saut');
+
+        this.musique;
+        this.musique = this.sound.add('musique');
 
         this.add.image(0, 0, 'BG').setOrigin(0).setDepth(-2);
         this.add.image(0, 2120, 'cache').setOrigin(0).setDepth(3);
 
-        // CREATION DE LA MAP   
+        // CREATION DE LA MAP
+        
+        
+
         let Map = this.make.tilemap({ key: 'Map' });
         let Tileset = Map.addTilesetImage('Tuiles', 'Tiles');
 
@@ -335,6 +359,8 @@ class Platform extends Phaser.Scene{
     update(){
         const onGround = this.player.body.blocked.down;
         const speed = 400;
+
+        
         
         console.log(this.directionDash)
 
@@ -385,6 +411,7 @@ class Platform extends Phaser.Scene{
         }
 
         if (this.dash && Phaser.Input.Keyboard.JustDown(this.cursorDash)){
+            this.sound.play('dash',{volume : 0.02});//volmue
             this.timerDashOn = true;
             this.dash = false;
             this.timerFleche = this.flecheBack.height-1;
@@ -414,12 +441,13 @@ class Platform extends Phaser.Scene{
 
         // Allow player to jump only if on ground
         if (onGround && this.cursors.up.isDown && !this.djump){
+            this.sound.play('saut',{volume : 0.02});
             this.player.setVelocityY(-1200);
         }
           
         if ((this.player.body.touching.down || this.jumpCount < 2) && (this.cursors.up.isDown) && this.test && this.djump) {
             this.player.setVelocityY(-1200);
-            
+            this.sound.play('saut',{volume : 0.02});
             this.test = false;
             this.jumpCount++;
 
@@ -431,6 +459,7 @@ class Platform extends Phaser.Scene{
         }
 
         if (this.cursorSp.isDown && this.box){
+            //this.sound.play('coup',{volume : 0.02});
             this.HITTING = true;
         }
 
@@ -440,8 +469,9 @@ class Platform extends Phaser.Scene{
 
         if ( this.physics.world.overlap(this.player, this.door) && this.unlocked){
             combat = true;
-            
-            this.scene.start('boss')
+            this.blibli = true
+            this.musique.stop()
+            this.scene.start('boss',{AuRevoir:this.blibli})
         }
           
 
@@ -464,6 +494,15 @@ class Platform extends Phaser.Scene{
       
         // UPDATE DE LA VIE AVEC CHANGEMENT VISIBLE DE CETTE DERNIERE
    
+        if(this.blabla){
+            this.musique.play({volume : 0.02,loop:true});
+            this.blabla = false;
+        }
+        else{
+            this.musique.resume()
+        }
+        
+
         if (this.life == 3){
         this.hp.setTexture("barre_de_vie_3hp");
             
@@ -485,6 +524,7 @@ class Platform extends Phaser.Scene{
 
         if (this.recuper == 1){
             if(!this.pc){
+                this.sound.play('pop');
                 this.pc = this.add.image(950,200,'popupcage').setScrollFactor(0);
                 this.time.addEvent({ delay: 3000, callback: function(){this.pc.destroy();}, callbackScope: this});
             }
@@ -499,6 +539,7 @@ class Platform extends Phaser.Scene{
         saut.destroy();
         this.djump = true;
         if(!this.ps){
+            this.sound.play('pop');
             this.ps = this.add.image(950,200,'popupsaut').setScrollFactor(0);
             this.time.addEvent({ delay: 3000, callback: function(){this.ps.destroy();}, callbackScope: this});
         }
@@ -508,6 +549,7 @@ class Platform extends Phaser.Scene{
         boxe.destroy();
         this.box = true;
         if(!this.pg){
+            this.sound.play('pop');
             this.pg = this.add.image(950,200,'popupgants').setScrollFactor(0);
             this.time.addEvent({ delay: 3000, callback: function(){this.pg.destroy();}, callbackScope: this});
         }
@@ -518,6 +560,7 @@ class Platform extends Phaser.Scene{
         this.recuper += 1;
         if (this.recuper == 5){
             if(!this.pf){
+                this.sound.play('pop');
                 this.pf = this.add.image(950,200,'popupfincage').setScrollFactor(0);
                 this.time.addEvent({ delay: 3000, callback: function(){this.pf.destroy();}, callbackScope: this});
             }
@@ -552,6 +595,7 @@ class Platform extends Phaser.Scene{
             if(this.life == 0){
                 this.isDead = true
                 this.player.anims.play("die", true);
+                this.musique.pause()
                 this.physics.pause();
                 const cam = this.cameras.main;
                 cam.fadeOut(1000);
@@ -566,7 +610,7 @@ class Platform extends Phaser.Scene{
                         cam.fade(250, 0, 0, 0);
             
                         cam.once("camerafadeoutcomplete", () => {
-                            this.scene.restart();
+                            this.scene.restart({Bonjour:this.blabla});
                         });}, callbackScope: this});
             })
             }
@@ -580,6 +624,7 @@ class Platform extends Phaser.Scene{
         this.nbcle++
         if(this.nbcle == 4){
             if(!this.pp){
+                this.sound.play('pop');
                 this.pp = this.add.image(950,200,'popupporte').setScrollFactor(0);
                 this.time.addEvent({ delay: 3000, callback: function(){this.pp.destroy();}, callbackScope: this});
             }
@@ -590,6 +635,7 @@ class Platform extends Phaser.Scene{
     bonjour(){
         if (this.once){
             if(!this.px){
+                this.sound.play('pop');
                 this.pix = this.add.image(950,200,'popupcageferme').setScrollFactor(0);
                 this.time.addEvent({ delay: 2000, callback: function(){this.pix.destroy();}, callbackScope: this});
             }
@@ -604,6 +650,7 @@ class Platform extends Phaser.Scene{
     death(){
         this.isDead = true
         this.player.anims.play("die", true);
+        this.musique.pause()
         this.physics.pause();
         const cam = this.cameras.main;
         cam.fadeOut(1000);
@@ -619,7 +666,7 @@ class Platform extends Phaser.Scene{
                 cam.fade(250, 0, 0, 0);
     
                 cam.once("camerafadeoutcomplete", () => {
-                    this.scene.restart();
+                    this.scene.restart({Bonjour:this.blabla});
                 });}, callbackScope: this});
         })
         

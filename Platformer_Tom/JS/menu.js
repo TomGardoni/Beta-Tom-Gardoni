@@ -5,7 +5,11 @@ class Menu extends Phaser.Scene {
 
     preload()
 	{
-		
+		//Son
+        this.load.audio('musique', 'sounds/musique.ogg');
+        this.load.audio('pop', 'sounds/pop.ogg');
+        
+               
         this.load.image('playbutton', './assets/adventure.png')
         this.load.image('menu', './assets/menu.png')
         this.load.image('options', './assets/options.png')
@@ -17,7 +21,9 @@ class Menu extends Phaser.Scene {
     create() { //creating the menu screen
 
         //create images (z order)
+        this.blabla = true;
 
+        //this.sound.play('musique',{volume : 0.02,loop:true,mute:false});
         this.add.image(0, 0, 'menu').setOrigin(0).setDepth(0);
 
         let playButton = this.add.image(this.game.renderer.width / 2, this.game.renderer.height / 1.6, 'playbutton').setDepth(1);
@@ -41,6 +47,9 @@ class Menu extends Phaser.Scene {
         playButton.setInteractive();
 
         playButton.on("pointerup", () => {
+            
+            this.sound.play('pop');
+            //this.sound.stop()
             this.add.image(0,0,'touche').setOrigin(0).setDepth(2);
             this.image.setVisible(true)
             this.time.addEvent({delay: 3500, callback: function(){const cam = this.cameras.main;
@@ -48,7 +57,8 @@ class Menu extends Phaser.Scene {
                 cam.fade(250, 0, 0, 0);
     
                 cam.once("camerafadeoutcomplete", () => {
-                    this.scene.start('Platform')
+                
+                    this.scene.start('Platform',{Bonjour:this.blabla})
                 });}, callbackScope: this});
             
             
@@ -57,12 +67,14 @@ class Menu extends Phaser.Scene {
         options.setInteractive();
 
         options.on("pointerup", () => {
+            this.sound.play('pop');
             this.scene.start('boss');
         })
         
         exit.setInteractive();
 
         exit.on("pointerup", () => {
+           this.sound.play('pop');
            this.scene.remove()
         })
 

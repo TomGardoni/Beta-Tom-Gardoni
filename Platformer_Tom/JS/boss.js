@@ -3,18 +3,28 @@ class Boss extends Phaser.Scene {
         super('boss')
     }
 
+    init(data){
+
+        this.blibli = data.AuRevoir
+
+
+    }
+
     
     preload(){
         
         //Map
-        this.load.image('salleboss', 'murenfers.png');
+        this.load.image('salleboss', 'assets/murenfers.png');
         this.load.tilemapTiledJSON('map_boss', 'boss.json');
         
         //Background
         this.load.image('salle', 'assets/salleboss.png');
+        this.load.image('ecranfin', 'assets/ecranfin.png');
         
         //ITEMS
         this.load.image('fleche', 'assets/fleche.png');
+        this.load.image('projectile', 'assets/projectil.png');
+
         
         //Vie
                 
@@ -22,6 +32,9 @@ class Boss extends Phaser.Scene {
         this.load.image('barre_de_vie_2hp', 'assets/hp2.png');
         this.load.image('barre_de_vie_1hp', 'assets/hp1.png');
         this.load.image('barre_de_vie_0hp', 'assets/hp0.png');
+
+        this.load.spritesheet('bar', 'assets/bar.png', { frameWidth: 1400, frameHeight: 120});
+
         
         this.load.image('game_over', 'assets/End.png');
         
@@ -29,6 +42,12 @@ class Boss extends Phaser.Scene {
         this.load.spritesheet('dude', 'assets/spritesheet_perso2.png', { frameWidth: 96, frameHeight: 119});
         this.load.spritesheet('boss', 'assets/boss.png', { frameWidth: 1000, frameHeight: 900});
 
+       //Son
+       this.load.audio('musique', 'sounds/musique.ogg');
+       this.load.audio('dash', 'sounds/dash.ogg');
+       this.load.audio('coup', 'sounds/coup.ogg');
+       this.load.audio('saut', 'sounds/saut.ogg');
+       this.load.audio('musiqueboss', 'sounds/musiqueboss.ogg');
     }
     // FIN PRELOAD
     
@@ -44,16 +63,23 @@ class Boss extends Phaser.Scene {
         this.test = true;
         this.testB = true;
         this.immune = true;
+        this.immuneBoss = false;
         this.life = 3;
         this.HITTING = false;
         this.isDead = false;
         this.dash = true;            // Si le joueur possède le dash.
         this.timerDashOn = false;    // Lance le timer du dash.
         this.timerDash = 0;          // Timer du dash.
-        this.directionDash = false;          // Donne la direction vers laquelle le dash doit être fait.
+        this.directionDash = false;  // Donne la direction vers laquelle le dash doit être fait.
         this.lessgo = true;
         this.unlocked = false;
+        this.cooldown = 180;
+        this.bossHp = 25;
+        this.once = true
+        this.musiqua;
         
+        this.musiqua = this.sound.add('musiqueboss');
+
         this.add.image(0, 50, 'salle').setOrigin(0).setDepth(-2);
 
         // CREATION DE LA MAP 
@@ -61,14 +87,22 @@ class Boss extends Phaser.Scene {
         let Tileset = Map.addTilesetImage('salleboss', 'salleboss');
 
         this.sol = Map.createLayer('ground', Tileset, 0, 0).setDepth(-1);
+
+        this.bar=this.add.sprite(960, 160,'bar');
+
         // CREATION BOSS
-        this.boss = this.physics.add.sprite(960, 540, 'boss').setDepth(0);
+        this.boss = this.physics.add.sprite(960, 540, 'boss').setDepth(0).setSize(400,700).setOffset(250, 200);
         this.boss.setCollideWorldBounds(true);
-        
-       // CREATION PLAYER
-		this.player = this.physics.add.sprite(200, 950, 'dude').setDepth(0);
+
+        //CREATION PROJECTILE
+        this.projectiles = this.physics.add.group();
+
+        // CREATION PLAYER
+		this.player = this.physics.add.sprite(200, 950, 'dude').setDepth(0).setSize(75,125);
         this.player.setCollideWorldBounds(true);
 
+
+   
 
         this.cursors = this.input.keyboard.createCursorKeys();
         this.cursorSp = this.input.keyboard.addKey('SPACE');
@@ -86,11 +120,16 @@ class Boss extends Phaser.Scene {
         this.sol.setCollisionByProperty({collides:true});
 
         this.physics.add.collider(this.player, this.sol);
+        this.physics.add.overlap(this.player, this.boss, this.hitBoss, null, this);
+        this.physics.add.overlap(this.player, this.projectiles, this.hit, null, this);
         this.sol.setCollisionByProperty({collides:true});
+
+        this.physics.add.collider(this.projectiles, this.sol, this.projectileDestroy, null, this);
+
 
         //this.physics.add.collider(this.fleche, this.sol);
         this.sol.setCollisionByProperty({collides:true});
-
+        
 
 
 
@@ -147,7 +186,11 @@ class Boss extends Phaser.Scene {
             key: 'move',
             frames: this.anims.generateFrameNumbers('boss', {start: 0, end: 4}),
             frameRate: 4,
+            repeat: -1
         })
+
+        this.boss.anims.play('move',true);
+
 
     }
 
@@ -161,9 +204,16 @@ class Boss extends Phaser.Scene {
         
         // ANIME boss
 
-        if(combat==true){
-            this.boss.anims.play('move',true);
+        if(this.blibli){
+            this.musiqua.play({volume : 0.02,loop:true});
+            this.blibli = false;
         }
+        else{
+            this.musiqua.resume()
+        }
+
+
+
         // CONTROLES CLAVIER ET MANETTE
 
         if (this.player.body.velocity.y > 950){
@@ -242,10 +292,12 @@ class Boss extends Phaser.Scene {
 
         // Allow player to jump only if on ground
         if (onGround && this.cursors.up.isDown && !this.djump){
+            this.sound.play('saut',{volume : 0.02});
             this.player.setVelocityY(-1200);
         }
           
         if ((this.player.body.touching.down || this.jumpCount < 2) && (this.cursors.up.isDown) && this.test && this.djump) {
+            this.sound.play('saut',{volume : 0.02});
             this.player.setVelocityY(-1200);
             
             this.test = false;
@@ -258,13 +310,13 @@ class Boss extends Phaser.Scene {
             this.test = true ; 
         }
 
-        if (this.cursorSp.isDown && this.box && this.testB){
-            this.testB = false;
-            this.boxe = this.time.addEvent({ delay : 200, repeat: 9, callback: function(){this.HITTING = true;}, callbackScope: this});
+        if (this.cursorSp.isDown && this.box){
+            //this.sound.play('coup',{volume : 0.02});
+            this.HITTING = true;
         }
 
         if (this.cursorSp.isUp){
-            this.testB = true ; 
+            this.HITTING = false ;
         }
 
         if ( this.physics.world.overlap(this.player, this.door) && this.unlocked){
@@ -307,7 +359,54 @@ class Boss extends Phaser.Scene {
             this.hp.setTexture("barre_de_vie_0hp");
             
         }
+
+        if(this.cooldown <= 0){
+            this.cooldown = 240;
+            for (let i = 0; i < 5; i++){
+                this.projectiles.create(300+i*250, 150, 'projectile').setSize(75, 125);
+            }
+        }
+
+        else{
+            this.cooldown--;
+        }
+
+
+        for(var i = 0; i < this.projectiles.getChildren().length; i++){
+            let projectile = this.projectiles.getChildren()[i];
+
+            let radian = Math.atan2(this.player.body.y - projectile.body.y, this.player.body.x - projectile.body.x);
+            let angle =  Math.atan2(0 - projectile.body.velocity.y, 1 - projectile.body.velocity.x) * 180/Math.PI;
+
+            projectile.setVelocityX(Math.cos(radian)*250)
+            projectile.setVelocityY(200)
+            .setAngle(angle-270);
+        }
+
+        //Boss Mort
+        if (this.bossHp <= 0 && this.once){
+            this.once = false
+            const cam = this.cameras.main;
+            this.physics.pause();
+            this.musiqua.stop()
+
+            cam.fade(250, 0, 0, 0);
+
+
+            cam.once("camerafadeoutcomplete", ()=> {
+                cam.fadeIn(3000)
+                this.add.image(960, 540, 'ecranfin').setScrollFactor(0).setDepth(5);
+                this.time.addEvent({delay: 6500, callback: function(){const cam = this.cameras.main;
+                    this.scene.start('menu');
+                    }, callbackScope: this});
+
+            })
         
+
+        }
+
+        this.bar.setFrame(this.bossHp-1);
+
     }
 
    
@@ -330,13 +429,28 @@ class Boss extends Phaser.Scene {
             this.recuper = 0;
         }
     }
-    hit(player,ennemy){
-        if (this.HITTING){
-            ennemy.destroy();
-            var key = this.key.create(ennemy.x,ennemy.y,'key')
-        }
-        else{
 
+    hitBoss(player, boss){
+        if (this.HITTING){
+
+            if(!this.immuneBoss){
+                this.bossHp--;
+                this.immuneBoss = true;
+                boss.setTintFill('0xffffff');
+                this.timer = this.time.addEvent({ delay : 100, callback: function(){boss.clearTint()}, callbackScope: this});
+                this.time.addEvent({ delay : 1000, callback: function(){this.immuneBoss = false}, callbackScope: this});
+
+            }
+
+            else{
+
+            }
+
+        }
+
+    }
+
+    hit(player, ennemy){
             if (!this.timerDashOn){
                 if (this.immune){
                     this.life -= 1;
@@ -356,26 +470,36 @@ class Boss extends Phaser.Scene {
             if(this.life == 0){
                 this.isDead = true
                 this.player.anims.play("die", true);
+                this.musiqua.pause()
                 this.physics.pause();
                 const cam = this.cameras.main;
                 cam.fadeOut(1000);
         
 
-                cam.once("camerafadeoutcomplete", ()=> {
+                 cam.once("camerafadeoutcomplete", ()=> {
                     cam.fadeIn(3000)
                     this.add.image(960, 540, 'game_over').setScrollFactor(0).setDepth(5);
                     this.gameOver = true;
+                    this.time.addEvent({delay: 3500, callback: function(){const cam = this.cameras.main;
+
+                        cam.fade(250, 0, 0, 0);
+            
+                        cam.once("camerafadeoutcomplete", () => {
+                            this.scene.restart({AuRevoir:this.blibli});
+                        });}, callbackScope: this});
             })
             }
         }
 
-    }
+    
+
 
 
     death(){
         this.isDead = true
         this.player.anims.play("die", true);
         this.physics.pause();
+        this.musiqua.pause()
         const cam = this.cameras.main;
         cam.fadeOut(1000);
         
@@ -387,6 +511,10 @@ class Boss extends Phaser.Scene {
             this.gameOver = true;
         })
         
-        
     }
+
+    projectileDestroy(projectile, sol){
+        projectile.destroy();
+    }
+
 }
