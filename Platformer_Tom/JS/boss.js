@@ -82,7 +82,8 @@ class Boss extends Phaser.Scene {
 
         this.add.image(0, 50, 'salle').setOrigin(0).setDepth(-2);
 
-        // CREATION DE LA MAP 
+        // CREATION DE LA MAP
+
         let Map = this.make.tilemap({ key: 'map_boss' });
         let Tileset = Map.addTilesetImage('salleboss', 'salleboss');
 
@@ -205,7 +206,7 @@ class Boss extends Phaser.Scene {
         // ANIME boss
 
         if(this.blibli){
-            this.musiqua.play({volume : 0.02,loop:true});
+            this.musiqua.play({volume : 0.005,loop:true});
             this.blibli = false;
         }
         else{
