@@ -293,12 +293,10 @@ class Boss extends Phaser.Scene {
 
         // Allow player to jump only if on ground
         if (onGround && this.cursors.up.isDown && !this.djump){
-            this.sound.play('saut',{volume : 0.02});
             this.player.setVelocityY(-1200);
         }
           
         if ((this.player.body.touching.down || this.jumpCount < 2) && (this.cursors.up.isDown) && this.test && this.djump) {
-            this.sound.play('saut',{volume : 0.02});
             this.player.setVelocityY(-1200);
             
             this.test = false;

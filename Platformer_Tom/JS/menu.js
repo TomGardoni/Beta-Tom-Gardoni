@@ -68,7 +68,8 @@ class Menu extends Phaser.Scene {
 
         options.on("pointerup", () => {
             this.sound.play('pop');
-            this.scene.start('boss');
+            this.scene.start('optionsm');
+
         })
         
         exit.setInteractive();

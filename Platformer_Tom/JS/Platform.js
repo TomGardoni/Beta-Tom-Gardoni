@@ -1,7 +1,3 @@
-var etatCam = false;
-var compteurCam = 250;
-var passe = false;
-var untrucVivant = true;
 class Platform extends Phaser.Scene{
     constructor(){
         super("Platform");
@@ -198,12 +194,14 @@ class Platform extends Phaser.Scene{
         this.ghost1.create(FT1.x, FT1.y, 'Ghost1').setDepth(0);
         this.ghost2.create(FT2.x, FT2.y, 'Ghost2').setDepth(0);
         this.ghost3.create(FT3.x, FT3.y, 'Ghost1').setDepth(0);
-        this.ghost4.create(FT4.x, FT4.y, 'Ghost2').setDepth(0);
+        this.ghost4.create(FT4.x, FT4.y-10, 'Ghost2').setDepth(0);
 
         this.physics.add.overlap(this.player,this.ghost1,this.hit,null,this)
         this.physics.add.overlap(this.player,this.ghost2,this.hit,null,this)
         this.physics.add.overlap(this.player,this.ghost3,this.hit,null,this)
         this.physics.add.overlap(this.player,this.ghost4,this.hit,null,this)
+
+        this.ghost4.children.entries[0].body.allowGravity=false;
 		
 
         var test = this;
@@ -238,12 +236,12 @@ class Platform extends Phaser.Scene{
 				duration: 3000,
 				ease: 'Power2',
 				yoyo: true,
-				delay: 100,
+			    delay: 100,
 				loop: -1
 			});
 		})
         this.ghost4.children.iterate(function (child) {
-			test.tweens.add({
+			/*test.tweens.add({
 				targets: child,
 				x: child.x-200,
 				duration: 3000,
@@ -251,7 +249,7 @@ class Platform extends Phaser.Scene{
 				yoyo: true,
 				delay: 100,
 				loop: -1
-			});
+			});*/
 		})
         
         // AJOUT COLLIDER ENTRE JOUEUR ET OBJETS DE LA MAP
@@ -352,6 +350,9 @@ class Platform extends Phaser.Scene{
         this.physics.world.setBounds(0,0, Map.widthInPixels, Map.heightInPixels);
 		this.player.setCollideWorldBounds(true);
         this.para = this.add.image(2850,2000,'para').setScrollFactor(0.1);
+        
+        console.log(this.ghost4)
+
     } // FIN CREATE  
     
     // FONCTION UPDATE --------------------------------------------------
@@ -363,6 +364,25 @@ class Platform extends Phaser.Scene{
         
         
         console.log(this.directionDash)
+
+        if(this.ghost4.children.entries[0] !==undefined){
+
+        if(this.player.x < this.ghost4.children.entries[0].x &&
+           this.player.x > this.ghost4.children.entries[0].x - 1080 &&
+           this.ghost4.children.entries[0].y + this.ghost4.children.entries[0].body.height >= this.ghost4.children.entries[0].y &&
+           this.player.y - this.ghost4.children.entries[0].body.height <= this.ghost4.children.entries[0].y){
+           this.ghost4.children.entries[0].setVelocityX(-150)
+           this.ghost4.children.entries[0].setFlipX(true)
+        }
+        else if(this.player.x > this.ghost4.children.entries[0].x &&
+            this.player.x < this.ghost4.children.entries[0].x + 1080 &&
+            this.ghost4.children.entries[0].y + this.ghost4.children.entries[0].body.height >= this.ghost4.children.entries[0].y &&
+            this.player.y - this.ghost4.children.entries[0].body.height <= this.ghost4.children.entries[0].y){
+            this.ghost4.children.entries[0].setVelocityX(150)
+            this.ghost4.children.entries[0].setFlipX(false)
+         }
+         else{this.ghost4.children.entries[0].setVelocityX(0)}
+        }
 
         // CONTROLES CLAVIER ET MANETTE
         if (this.player.body.velocity.y > 950){
@@ -443,11 +463,13 @@ class Platform extends Phaser.Scene{
         if (onGround && this.cursors.up.isDown && !this.djump){
             this.sound.play('saut',{volume : 0.02});
             this.player.setVelocityY(-1200);
+           this.ghost2.setVelocityY(-1000);
         }
           
         if ((this.player.body.touching.down || this.jumpCount < 2) && (this.cursors.up.isDown) && this.test && this.djump) {
             this.player.setVelocityY(-1200);
             this.sound.play('saut',{volume : 0.02});
+            this.ghost2.setVelocityY(-700);
             this.test = false;
             this.jumpCount++;
 
