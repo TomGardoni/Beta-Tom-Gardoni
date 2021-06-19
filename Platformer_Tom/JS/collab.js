@@ -4,7 +4,7 @@ class collab extends Phaser.Scene {
     }
     preload()
 	{
-        this.load.image('colabomenu', './assets/colabomenu.png')
+        this.load.image('colabomenu', 'assets/colabomenu.png')
         this.load.image('back', './assets/back.png')
         
         

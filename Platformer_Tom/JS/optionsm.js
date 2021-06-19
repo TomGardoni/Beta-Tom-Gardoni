@@ -4,7 +4,7 @@ class optionsm extends Phaser.Scene {
     }
     preload()
 	{
-        this.load.image('optionm', './assets/optionmenu.png')
+        this.load.image('optionm', 'assets/optionmenu.png')
         this.load.image('controls', './assets/controls.png')
         this.load.image('collab', './assets/credits.png')
         this.load.image('back', './assets/back.png')
