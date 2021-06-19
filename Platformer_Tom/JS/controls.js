@@ -4,7 +4,7 @@ class controls extends Phaser.Scene {
     }
     preload()
 	{
-        this.load.image('touche', '/assets/touche.png')
+        this.load.image('touche', './assets/touche.png')
         this.load.image('back', './assets/back.png')
         
         
