@@ -26,7 +26,7 @@ class optionsm extends Phaser.Scene {
 
         controls.setInteractive();
 
-        controls.on("pointerup", () => {
+    
             
         controls.on("pointerup", () => {
             this.sound.play('pop');
@@ -34,7 +34,6 @@ class optionsm extends Phaser.Scene {
                 
         })         
             
-        })
 
         options.setInteractive();
 
